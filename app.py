@@ -53,7 +53,7 @@ def predict():
         model = models[model_name]
         predictions[model_name] = model.predict(features)[0] 
  
-    return jsonify({predictions})
+    return jsonify(predictions)
     
 @app.route('/status', methods=['GET'])
 def status():
