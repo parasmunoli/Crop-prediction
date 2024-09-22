@@ -54,6 +54,10 @@ def predict():
         predictions[model_name] = model.predict(features)[0] 
  
     return jsonify(predictions)
+    
+@app.route('/status', methods=['GET'])
+def status():
+    return jsonify({'success': True, 'code': 200}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
