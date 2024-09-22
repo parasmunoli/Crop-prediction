@@ -55,7 +55,16 @@ def predict():
         data = request.get_json(force=True)
         model_name = data.get('model', 'random_forest').lower()
 
-        features = np.array([data['N'], data['P'], data['K'], data['temperature'], data['humidity'], data['ph'], data['rainfall']])
+        features = np.array([
+    round(float(data['N']), 2),
+    round(float(data['P']), 2),
+    round(float(data['K']), 2),
+    round(float(data['temperature']), 2),
+    round(float(data['humidity']), 2),
+    round(float(data['ph']), 2),
+    round(float(data['rainfall']), 2)
+])
+
         features = features.reshape(1, -1)
 
         predictions = {
