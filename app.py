@@ -74,7 +74,11 @@ def predict():
         else:
             return jsonify({'error': 'Model not found'}), 400
 
-        return jsonify(predictions)
+        return jsonify({"decision_tree": predictions['decision_tree'],
+    "logistic_regression": predictions['logistic_regression'],
+    "naive_bayes": predictions['naive_bayes'],
+    "random_forest": predictions['random_forest'],
+    "svm": predictions['svm']})
 
     except KeyError as ke:
         return jsonify({'error': 'Missing feature in request', 'message': str(ke)}), 400
