@@ -25,11 +25,11 @@ def load_nbc():
         return pickle.load(model_file)
 
 models = {
-    "decision tree": load_decision_tree(),
+    "decision_tree": load_decision_tree(),
     "svm": load_svm(),
-    "random forest": load_rf(),
-    "naive bayes": load_nbc(),
-    "logistic regression": load_lr(),
+    "random_forest": load_rf(),
+    "naive_bayes": load_nbc(),
+    "logistic_regression": load_lr(),
 }
 
 @app.route('/predict', methods=['POST'])
@@ -53,7 +53,7 @@ def predict():
         model = models[model_name]
         predictions[model_name] = model.predict(features)[0] 
  
-    return jsonify(predictions)
+    return jsonify({predictions})
     
 @app.route('/status', methods=['GET'])
 def status():
