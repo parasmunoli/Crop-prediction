@@ -28,7 +28,7 @@ models = {
     "decision tree": load_decision_tree(),
     "svm": load_svm(),
     "random forest": load_rf(),
-    "guassiannaivebayes classifier": load_nbc(),
+    "naive bayes": load_nbc(),
     "logistic regression": load_lr(),
 }
 
