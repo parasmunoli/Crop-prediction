@@ -6,3 +6,4 @@ scikit-learn
 flask
 numpy
 gunicorn
+flask-cors
