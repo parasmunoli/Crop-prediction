@@ -95,6 +95,9 @@ def predict():
         return jsonify({'error': 'Model loading error', 'message': str(re)}), 500
     except Exception as e:
         return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
+@app.route('/status', method=['GET')
+def status():
+    return jsonify({"code":200, "success": "true"})
 
 if __name__ == '__main__':
     app.run(debug=True)
