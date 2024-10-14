@@ -6,4 +6,10 @@ scikit-learn
 flask
 numpy
 gunicorn
-flask-cors
+Pillow 
+joblib 
+tensorflow=2.13.1
+keras=2.13.1
+PIL
+flask_cors
+gdown
