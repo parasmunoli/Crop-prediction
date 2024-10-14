@@ -5,9 +5,4 @@ seaborn
 scikit-learn==1.4.2
 flask
 gunicorn
-Pillow
-joblib
-tensorflow==2.13.1
-keras==2.13.1
 flask-cors
-gdown
