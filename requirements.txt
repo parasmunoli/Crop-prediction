@@ -4,12 +4,10 @@ matplotlib
 seaborn
 scikit-learn
 flask
-numpy
 gunicorn
-Pillow 
-joblib 
-tensorflow=2.13.1
-keras=2.13.1
-PIL
-flask_cors
+Pillow
+joblib
+tensorflow==2.13.1
+keras==2.13.1
+flask-cors
 gdown
