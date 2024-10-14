@@ -1,9 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pickle
-from PIL import Image
-import joblib
-import gdown
 import numpy as np
 
 app = Flask(__name__)
