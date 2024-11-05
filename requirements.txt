@@ -1,6 +1,12 @@
 pandas
 numpy
-scikit-learn==1.4.2
-flask
+matplotlib
+seaborn
+scikit-learn
+Flask
+Pillow 
+joblib 
+tensorflow==2.13.1
+keras==2.13.1
 gunicorn
-flask-cors
+flask_cors
