@@ -1,11 +1,15 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pickle
+from PIL import Image
+import joblib
 import numpy as np
+import tensorflow as tf
 
 app = Flask(__name__)
 CORS(app)
 
+# Load machine learning models for crop prediction
 def load_decision_tree():
     try:
         with open('DecisionTree.pkl', 'rb') as model_file:
@@ -50,20 +54,20 @@ crop_models = {
 }
 
 @app.route('/crop_predict', methods=['POST'])
-def predict():
+def crop_predict():
     try:
         data = request.get_json(force=True)
         model_name = data.get('model', 'random_forest').lower()
 
         features = np.array([
-    round(float(data['N']), 2),
-    round(float(data['P']), 2),
-    round(float(data['K']), 2),
-    round(float(data['temperature']), 2),
-    round(float(data['humidity']), 2),
-    round(float(data['ph']), 2),
-    round(float(data['rainfall']), 2)
-])
+            round(float(data['N']), 2),
+            round(float(data['P']), 2),
+            round(float(data['K']), 2),
+            round(float(data['temperature']), 2),
+            round(float(data['humidity']), 2),
+            round(float(data['ph']), 2),
+            round(float(data['rainfall']), 2)
+        ])
 
         features = features.reshape(1, -1)
 
@@ -83,11 +87,7 @@ def predict():
         else:
             return jsonify({'error': 'Model not found'}), 400
 
-        return jsonify({"decision_tree": predictions['decision_tree'],
-    "logistic_regression": predictions['logistic_regression'],
-    "naive_bayes": predictions['naive_bayes'],
-    "random_forest": predictions['random_forest'],
-    "svm": predictions['svm']})
+        return jsonify(predictions)
 
     except KeyError as ke:
         return jsonify({'error': 'Missing feature in request', 'message': str(ke)}), 400
@@ -96,83 +96,84 @@ def predict():
     except Exception as e:
         return jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
 
-# model_ids = {
-#     'densenet': '1OYIlqOvuQgD4OLKA0HAa5HCb_GovcWvI',
-#     'inception': '1JQQkD-8jRQXI9Twp7BjJu_kxlmOqiljy',
-#     'vgg16': '1bHoCvQIs7_jI12W50CyREDZHKnZwavnt'
-# }
+model_paths = {
+    'inception': 'inception_model.tflite',
+    'densenet': 'densenet_model.tflite',
+    'vgg16': 'VGG16_model.tflite'
+}
 
-# class_labels = [
-#     "Tomato Bacterial spot",
-#     "Tomato Early blight",
-#     "Tomato Healthy",
-#     "Tomato Late blight",
-#     "Tomato Leaf Mold",
-#     "Tomato Mosaic virus",
-#     "Tomato Septoria leaf spot",
-#     "Tomato Spider mites",
-#     "Tomato Target Spot",
-#     "Tomato Yellow Leaf Curl Virus"
-# ]
+models = {}
+for name, model_path in model_paths.items():
+    try:
+        interpreter = tf.lite.Interpreter(model_path=model_path)
+        interpreter.allocate_tensors()
+        models[name] = interpreter
+    except Exception as e:
+        print(f"Error loading model {name}: {e}")
 
-# def load_model_from_drive(file_id):
-#     url = f'https://drive.google.com/uc?id={file_id}'
-#     model_data = gdown.download(url, None, quiet=True)
-#     model = joblib.load(model_data)
-#     return model
+class_labels = [
+    "Tomato Bacterial spot",
+    "Tomato Early blight",
+    "Tomato Healthy",
+    "Tomato Late blight",
+    "Tomato Leaf Mold",
+    "Tomato Mosaic virus",
+    "Tomato Septoria leaf spot",
+    "Tomato Spider mites",
+    "Tomato Target Spot",
+    "Tomato Yellow Leaf Curl Virus"
+]
 
-# models = {name: load_model_from_drive(file_id) for name, file_id in model_ids.items()}
+def preprocess_image(image, target_size):
+    image = image.resize(target_size)
+    image = np.array(image) / 255.0
+    image = np.expand_dims(image, axis=0)
+    return image.astype(np.float32)
 
-# def preprocess_image(image, target_size):
-#     image = image.resize(target_size)
-#     image = np.array(image) / 255.0
-#     image = np.expand_dims(image, axis=0)
-#     return image
+def get_model_prediction(interpreter, image):
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+    interpreter.set_tensor(input_details[0]['index'], image)
+    interpreter.invoke()
+    prediction = interpreter.get_tensor(output_details[0]['index'])
+    return np.argmax(prediction, axis=1)[0]
 
-# def get_model_prediction(model, image):
-#     prediction = model.predict(image)
-#     return np.argmax(prediction, axis=1)[0]
+@app.route('/tomato_predict', methods=['POST'])
+def image_predict():
+    if request.method == 'POST':
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image file provided'}), 400
 
-# def make_prediction(modelname, image):
-#     prediction_index = get_model_prediction(models[modelname], image)
-#     return class_labels[prediction_index]
+        image_file = request.files['image']
+        if image_file.filename == '':
+            return jsonify({'error': 'No selected image file'}), 400
 
-# @app.route('/tomato_predict', methods=['POST'])
-# def predict_single_model():
-#     modelname = request.form.get('modelname')
-#     if not modelname or modelname not in models:
-#         return jsonify({'error': 'Invalid or missing model name provided'}), 400
+        allowed_extensions = {'png', 'jpg', 'jpeg'}
+        if image_file.filename.split('.')[-1].lower() in allowed_extensions:
+            image = Image.open(image_file)
+            preprocessed_image = preprocess_image(image, target_size=(224, 224))
 
-#     if 'image' not in request.files:
-#         return jsonify({'error': 'No image file provided'}), 400
+            model_choice = request.form.get('model', 'all')
+            predictions = {}
 
-#     image_file = request.files['image']
-#     try:
-#         image = Image.open(image_file)
-#     except Exception as e:
-#         return jsonify({'error': str(e)}), 400
+            if model_choice == 'all':
+                for name, interpreter in models.items():
+                    try:
+                        predictions[name] = class_labels[get_model_prediction(interpreter, preprocessed_image)]
+                    except Exception as e:
+                        predictions[name] = f"Error: {str(e)}"
+                return jsonify(predictions)
 
-#     preprocessed_image = preprocess_image(image, target_size=(224, 224))
-#     prediction = make_prediction(modelname, preprocessed_image)
-#     return jsonify({'model': modelname, 'prediction': prediction})
+            try:
+                selected_model = models[model_choice]
+                prediction = class_labels[get_model_prediction(selected_model, preprocessed_image)]
+                return jsonify({f'{model_choice}_prediction': prediction})
+            except KeyError:
+                return jsonify({'error': f'Invalid model choice. Available options are: {", ".join(models.keys())}, or "all".'}), 400
+            except Exception as e:
+                return jsonify({'error': f'Error during prediction: {str(e)}'}), 500
 
-# @app.route('/tomato_predict/all', methods=['POST'])
-# def predict_all():
-#     if 'image' not in request.files:
-#         return jsonify({'error': 'No image file provided'}), 400
-
-#     image_file = request.files['image']
-#     try:
-#         image = Image.open(image_file)
-#     except Exception as e:
-#         return jsonify({'error': str(e)}), 400
-
-#     preprocessed_image = preprocess_image(image, target_size=(224, 224))
-#     predictions = {}
-#     for modelname in models.keys():
-#         predictions[modelname] = make_prediction(modelname, preprocessed_image)
-
-#     return jsonify(predictions)
+        return jsonify({'error': 'Invalid image file format'}), 400
 
 @app.route('/status', methods=['GET'])
 def status():
