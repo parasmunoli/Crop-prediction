@@ -5,6 +5,7 @@ from PIL import Image
 import joblib
 import numpy as np
 import tensorflow as tf
+from collections import Counter
 
 app = Flask(__name__)
 CORS(app)
@@ -82,6 +83,10 @@ def crop_predict():
         if model_name == "all":
             for name in crop_models.keys():
                 predictions[name] = crop_models[name].predict(features)[0]
+            prediction_counts = Counter(predictions.values())
+            most_common_prediction, frequency = prediction_counts.most_common(1)[0]
+            prediction = most_common_prediction
+            return jsonify({"All": prediction})
         elif model_name in crop_models:
             predictions[model_name] = crop_models[model_name].predict(features)[0]
         else:
